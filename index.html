@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Central de Emissão Inbound | CEVA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    color-scheme: light;
+    --teal:#005361; --teal-dark:#00404b; --lime:#a6d85b;
+    --bg:#f3f3ec; --card:#ffffff; --border:#e4e6e0;
+    --ink:#10262b; --ink-2:#3f5257; --muted:#7d8b8e;
+    --track:#eaf0f2; --icon-bg:#eaf4f1; --zebra:#e0f2e7; --grid:#edf0ee;
+    --serif:"Libre Baskerville", Georgia, "Times New Roman", serif;
+    --sans:"Inter", "Segoe UI", Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);color:var(--ink);font-size:14px;
+       background:radial-gradient(1200px 600px at 85% -10%, #eef2ea 0%, transparent 60%), var(--bg);min-height:100vh}
+
+  /* topo */
+  .top{background:#fff;border-bottom:1px solid var(--border)}
+  .top-in{max-width:1500px;margin:0 auto;padding:8px 40px;display:flex;align-items:center;gap:22px;min-height:58px;flex-wrap:wrap}
+  .logo{height:36px;display:block}
+  .top .sep{width:1px;height:14px;background:#c9cfcc}
+  .top .app{font-family:var(--serif);font-size:9.5px;letter-spacing:1.2px;color:var(--ink-2)}
+  .nav{margin-left:auto;display:flex;gap:8px}
+  .nav button{background:var(--teal);color:#fff;border:0;border-radius:4px;font-family:var(--serif);font-weight:700;font-size:12px;padding:9px 14px;cursor:pointer;opacity:.82}
+  .nav button.on{opacity:1;box-shadow:inset 0 -3px 0 var(--lime)}
+  .nav button:hover{opacity:1}
+
+  main{max-width:1360px;margin:0 auto;padding:30px 40px 40px}
+  .head{display:flex;gap:20px;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;margin-bottom:22px}
+  h1{font-family:var(--serif);font-weight:400;font-size:44px;line-height:1.1;margin:0 0 8px;color:var(--ink)}
+  .sub{font-family:var(--serif);color:var(--ink-2);font-size:13.5px}
+  .filters{display:flex;gap:14px;flex-wrap:wrap}
+  .f{display:flex;flex-direction:column;gap:6px}
+  .lbl{font-family:var(--serif);font-weight:700;font-size:9.5px;letter-spacing:1px;color:var(--ink-2);text-transform:uppercase}
+  select{appearance:auto;background:#fff;color:var(--ink);border:1px solid #cfd5d2;border-radius:6px;padding:9px 12px;font-family:var(--serif);font-size:12px;min-width:150px}
+
+  .card{min-width:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;box-shadow:0 1px 2px rgba(16,38,43,.04)}
+  .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
+  @media (max-width:1050px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (max-width:560px){.kpis{grid-template-columns:1fr}}
+  .kpi{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:112px}
+  .kpi .v{font-family:var(--sans);font-weight:800;font-size:28px;margin:10px 0 8px;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+  .kpi .s{font-size:10.5px;color:var(--teal)}
+  .kpi .ic{width:36px;height:36px;border-radius:50%;background:var(--icon-bg);display:grid;place-items:center;flex:none;color:var(--teal)}
+  .kpi .ic svg{width:16px;height:16px}
+
+  .row{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+  @media (max-width:1050px){.row{grid-template-columns:1fr}}
+  .card-h{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .legend{display:flex;gap:16px;font-family:var(--serif);font-size:10.5px;color:var(--ink-2)}
+  .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
+  .chartbox{position:relative;height:220px}
+
+  .part{display:grid;grid-template-columns:auto 1fr auto auto;gap:14px 12px;align-items:center;font-size:11.5px;padding:4px 4px 0}
+  .part .n{text-align:right;color:var(--ink)}
+  .part .t{height:13px;background:var(--track);border-radius:3px;overflow:hidden}
+  .part .t div{height:100%;background:var(--teal);border-radius:3px}
+  .part .q{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;min-width:52px}
+  .part .pc{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2);min-width:44px}
+
+  .btn-l{background:#eef1ef;border:1px solid var(--border);color:var(--ink);border-radius:6px;font-family:var(--serif);font-weight:700;font-size:11.5px;padding:7px 12px;cursor:pointer}
+  .btn-l:hover{background:#e3e8e5}
+  .btn{background:var(--teal);color:#fff;border:0;border-radius:6px;font-family:var(--serif);font-weight:700;font-size:12px;padding:10px 16px;cursor:pointer}
+  .btn:hover{background:var(--teal-dark)}
+
+  .tablewrap{overflow-x:auto;border-radius:4px}
+  table{width:100%;border-collapse:collapse;font-size:10.5px;font-variant-numeric:tabular-nums}
+  thead th{background:var(--teal);color:#fff;font-family:var(--serif);font-weight:700;font-size:9px;letter-spacing:.4px;padding:9px 10px;border:1px solid #1d6a77;text-transform:uppercase;white-space:nowrap}
+  tbody td{padding:7px 10px;text-align:right;border-left:1px solid var(--border);white-space:nowrap}
+  tbody td:first-child{text-align:left;border-left:0}
+  tbody tr:nth-child(odd) td{background:var(--zebra)}
+  tbody td.tot{font-weight:700}
+  tbody tr.total td{background:#fff;font-weight:800;border-top:2px solid var(--teal)}
+
+  /* importar */
+  .imp{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}
+  @media (max-width:900px){.imp{grid-template-columns:1fr}}
+  #drop{border:2px dashed #c8d2cf;border-radius:10px;padding:46px 20px;text-align:center}
+  #drop.over{border-color:var(--teal);background:#f2f8f6}
+  #drop h3{font-family:var(--serif);margin:10px 0 6px;font-size:18px}
+  #drop p{color:var(--ink-2);margin:5px 0}
+  .bigic{width:56px;height:56px;border-radius:50%;background:var(--icon-bg);color:var(--teal);display:grid;place-items:center;margin:0 auto}
+  .lock{font-size:11.5px;color:var(--muted);margin-top:14px}
+  .fmt h3{font-family:var(--serif);font-size:16px;margin:0 0 4px}
+  .fmt h4{font-family:var(--serif);margin:16px 0 6px;font-size:12.5px}
+  .fmt code{background:#f1f4f2;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:11.5px}
+  .fmt ul{margin:0;padding-left:18px;color:var(--ink-2);line-height:1.7;font-size:13px}
+  .msg{border-radius:8px;padding:11px 14px;margin-top:12px;font-size:13px}
+  .msg.err{background:#fff4dc;color:#7a4f00}
+  .msg.ok{background:var(--zebra);color:var(--teal)}
+  .empty{text-align:center;padding:64px 20px;color:var(--ink-2)}
+  .empty h3{font-family:var(--serif);font-size:20px;margin:14px 0 6px}
+  .warn{background:#fff4dc;color:#7a4f00;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12.5px}
+  .foot{font-family:var(--serif);color:var(--muted);font-size:11px;margin-top:20px;text-align:center}
+  .hidden{display:none!important}
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+  #toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="top-in">
+  <img class="logo" alt="CEVA Logistics" src="data:image/png;base64,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">
+  <span class="sep"></span>
+  <span class="app">CENTRAL DE EMISSÃO INBOUND</span>
+  <nav class="nav">
+    <button class="on" data-view="visoes">▥ Visões e análises</button>
+    <button data-view="importar">↥ Importar base</button>
+  </nav>
+</div></div>
+
+<main>
+  <!-- ============ VISÕES ============ -->
+  <section id="v-visoes">
+    <div class="head">
+      <div>
+        <h1>Central de Emissão Inbound</h1>
+        <div class="sub" id="subtitle">Viagens e peso bruto por montadora. Atualize a base para visualizar os dados.</div>
+      </div>
+      <div class="filters">
+        <div class="f"><span class="lbl">Período</span><select id="fMes"><option value="all">Todos os meses</option></select></div>
+        <div class="f"><span class="lbl">Cliente / montadora</span><select id="fCli"><option value="all">Todos</option></select></div>
+      </div>
+    </div>
+
+    <div id="empty" class="card empty">
+      <div class="bigic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg></div>
+      <h3>Nenhuma base carregada</h3>
+      <p>Importe a planilha de emissão para ver os indicadores.</p>
+      <p style="margin-top:16px"><button class="btn" onclick="go('importar')">Importar base</button></p>
+    </div>
+
+    <div id="dash" class="hidden">
+      <div id="warnings"></div>
+      <div class="kpis" id="kpis"></div>
+
+      <div class="row">
+        <div class="card">
+          <div class="card-h">
+            <span class="lbl">Evolução mensal – viagens e peso bruto</span>
+            <div class="legend"><span><i style="background:var(--teal)"></i>Viagens</span><span><i style="background:var(--lime)"></i>Peso bruto (kg)</span></div>
+          </div>
+          <div class="chartbox"><canvas id="cEvo"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="lbl">Participação por cliente – viagens</span></div>
+          <div class="part" id="part"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <span class="lbl">Detalhamento mensal por cliente</span>
+          <div style="display:flex;gap:8px"><button class="btn-l" id="copyCsv">⧉ Copiar tabela</button><button class="btn-l" id="expCsv">↥ Exportar CSV</button></div>
+        </div>
+        <div class="tablewrap"><table id="tDetail"></table></div>
+      </div>
+    </div>
+    <div class="foot" id="foot">Os dados são lidos só no seu navegador. Nada é enviado para servidor.</div>
+  </section>
+
+  <!-- ============ IMPORTAR ============ -->
+  <section id="v-importar" class="hidden">
+    <div class="head"><div><h1>Importar base</h1><div class="sub">Carregue a planilha atualizada. O painel é recalculado na hora.</div></div></div>
+    <div class="imp">
+      <div class="card">
+        <div id="drop">
+          <div class="bigic"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg></div>
+          <h3>Arraste o arquivo aqui</h3>
+          <p>ou</p>
+          <p><label class="btn" style="display:inline-block">Escolher arquivo<input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv" class="hidden"></label></p>
+          <p style="font-size:12px;margin-top:10px">Excel (.xlsx / .xls) ou CSV</p>
+          <div class="lock">🔒 O arquivo é lido só no seu navegador. Nenhum dado é enviado ou salvo.</div>
+        </div>
+        <div id="impMsg" class="msg hidden"></div>
+      </div>
+      <div class="card fmt">
+        <h3>Formatos aceitos</h3>
+        <h4>1. Base consolidada (cabeçalho agrupado)</h4>
+        <ul>
+          <li>Linha com o nome de cada cliente (CNH, GMB, IVECO…)</li>
+          <li>Logo abaixo, as colunas <code>VIAGEM</code> e <code>PESO_BRUTO_CTE</code> de cada cliente</li>
+          <li>Uma linha por mês (<code>jan</code>, <code>fev</code>…) até o <code>Total Geral</code></li>
+        </ul>
+        <h4>2. Base analítica (uma linha por registro)</h4>
+        <ul>
+          <li>Colunas <code>MES</code>, <code>CLIENTE</code>, <code>VIAGEM</code>, <code>PESO_BRUTO_CTE</code></li>
+          <li><code>MES</code> pode ser <code>jan</code>, <code>janeiro</code>, <code>1</code> ou uma data</li>
+          <li>Se <code>VIAGEM</code> for o código da viagem, o painel conta viagens distintas</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+/* PARSER-START */
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const MES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toUpperCase();
+function num(x){
+  if (typeof x === 'number') return isFinite(x) ? x : 0;
+  if (x == null || x === '') return 0;
+  let s = String(x).trim().replace(/\s/g,'');
+  if (/,\d{1,3}$/.test(s) || (s.includes(',') && s.includes('.') && s.lastIndexOf(',') > s.lastIndexOf('.'))) s = s.replace(/\./g,'').replace(',','.');
+  else s = s.replace(/,/g,'');
+  const n = parseFloat(s); return isFinite(n) ? n : 0;
+}
+function monthIdx(x){
+  if (x == null || x === '') return -1;
+  if (x instanceof Date) return x.getMonth();
+  if (typeof x === 'number'){
+    if (x >= 1 && x <= 12) return x - 1;
+    if (x > 20000){ const d = new Date(Math.round((x - 25569) * 864e5)); return d.getUTCMonth(); }
+    return -1;
+  }
+  const s = String(x).trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const m3 = s.slice(0,3); let i = MESES.indexOf(m3); if (i >= 0) return i;
+  const d = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/); if (d) return +d[2] - 1;
+  const iso = s.match(/^(\d{4})-(\d{1,2})/); if (iso) return +iso[2] - 1;
+  const mm = s.match(/^(\d{1,2})[\/\-](\d{4})$/); if (mm) return +mm[1] - 1;
+  if (/^\d{1,2}$/.test(s) && +s >= 1 && +s <= 12) return +s - 1;
+  return -1;
+}
+
+/* devolve {year, clients, months:[mesIdx], v:{cli:[..]}, p:{cli:[..]}, sheetTotals, formato} */
+function parseRows(rows){
+  return parseConsolidada(rows) || parseAnalitica(rows);
+}
+
+function parseConsolidada(rows){
+  for (let h = 1; h < Math.min(rows.length, 40); h++){
+    const row = rows[h] || [];
+    const cols = [];
+    for (let c = 0; c < row.length - 1; c++){
+      if (norm(row[c]) === 'VIAGEM' && norm(row[c+1]).startsWith('PESO_BRUTO')){
+        const client = String((rows[h-1]||[])[c] ?? '').trim();
+        if (client && norm(client) !== 'VIAGEM') cols.push({client, cV:c, cP:c+1});
+      }
+    }
+    if (!cols.length) continue;
+    let mCol = -1;
+    for (let c = 0; c < 6 && mCol < 0; c++)
+      for (let r = h+1; r < Math.min(rows.length, h+4); r++)
+        if (MESES.includes(String((rows[r]||[])[c] ?? '').trim().toLowerCase().slice(0,3))) { mCol = c; break; }
+    if (mCol < 0) continue;
+    const yc = (rows[h]||[])[mCol];
+    const year = (typeof yc === 'number' && yc > 2000) ? yc : null;
+    const clients = cols.map(x => x.client);
+    const v = {}, p = {}; clients.forEach(c => { v[c] = []; p[c] = []; });
+    const months = []; let sheetTotals = null;
+    for (let r = h+1; r < rows.length; r++){
+      const rr = rows[r] || [];
+      const label = String(rr[mCol] ?? '').trim().toLowerCase();
+      if (label.startsWith('total')){ sheetTotals = {}; cols.forEach(x => sheetTotals[x.client] = {v:num(rr[x.cV]), p:num(rr[x.cP])}); break; }
+      const mi = MESES.indexOf(label.slice(0,3));
+      if (mi < 0){ if (months.length) break; else continue; }
+      if (months.includes(mi)) break;
+      months.push(mi);
+      cols.forEach(x => { v[x.client].push(num(rr[x.cV])); p[x.client].push(num(rr[x.cP])); });
+    }
+    if (!months.length) continue;
+    return {year, clients, months, v, p, sheetTotals, formato:'consolidada'};
+  }
+  return null;
+}
+
+function parseAnalitica(rows){
+  for (let h = 0; h < Math.min(rows.length, 20); h++){
+    const hdr = (rows[h] || []).map(norm);
+    const iM = hdr.findIndex(x => x === 'MES' || x === 'MÊS' || x === 'DATA' || x.startsWith('DATA_') || x === 'DATA EMISSAO');
+    const iC = hdr.findIndex(x => x === 'CLIENTE' || x === 'MONTADORA');
+    const iV = hdr.findIndex(x => x === 'VIAGEM' || x === 'VIAGENS' || x === 'QTDE_VIAGEM');
+    const iP = hdr.findIndex(x => x.startsWith('PESO_BRUTO') || x === 'PESO' || x === 'PESO BRUTO');
+    if (iM < 0 || iC < 0 || iP < 0) continue;
+    const body = rows.slice(h+1).filter(r => r && r.some(x => x != null && x !== ''));
+    // VIAGEM é contagem (número pequeno) ou código da viagem?
+    const sample = body.slice(0, 200).map(r => r[iV]).filter(x => x != null && x !== '');
+    const isCount = iV >= 0 && sample.length && sample.every(x => typeof x === 'number' && x >= 0 && x < 100000 && Number.isInteger(x)) && new Set(sample).size < sample.length * 0.5;
+    const agg = {}; const months = new Set(); const clients = [];
+    let year = null;
+    body.forEach(r => {
+      const mi = monthIdx(r[iM]); const c = String(r[iC] ?? '').trim();
+      if (mi < 0 || !c) return;
+      if (!year && r[iM] instanceof Date) year = r[iM].getFullYear();
+      if (!clients.includes(c)) clients.push(c);
+      months.add(mi);
+      const k = c + '|' + mi;
+      agg[k] = agg[k] || {v:0, p:0, ids:new Set()};
+      agg[k].p += num(r[iP]);
+      if (iV < 0) agg[k].v += 1;
+      else if (isCount) agg[k].v += num(r[iV]);
+      else if (r[iV] != null && r[iV] !== '') agg[k].ids.add(String(r[iV]));
+    });
+    if (!clients.length) continue;
+    const ms = [...months].sort((a,b) => a-b);
+    const v = {}, p = {};
+    clients.forEach(c => {
+      v[c] = ms.map(m => { const a = agg[c+'|'+m]; return a ? (iV >= 0 && !isCount ? a.ids.size : a.v) : 0; });
+      p[c] = ms.map(m => { const a = agg[c+'|'+m]; return a ? a.p : 0; });
+    });
+    return {year, clients, months:ms, v, p, sheetTotals:null, formato:'analítica'};
+  }
+  return null;
+}
+/* PARSER-END */
+
+
+let DATA = null;
+const charts = {};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fInt = n => Math.round(n).toLocaleString('pt-BR');
+const f1 = n => n.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+const f2 = n => n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fPct = n => (n*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%';
+function fBig(kg){
+  if (kg >= 1e9) return f2(kg/1e9) + (kg/1e9 >= 2 ? ' bilhões' : ' bilhão');
+  if (kg >= 1e6) return f1(kg/1e6) + ' mi kg';
+  return fInt(kg) + ' kg';
+}
+function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2400); }
+const ICON = {
+  truck:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg>',
+  weight:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 9-9 9-9-9z"/></svg>',
+  pie:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 3a9 9 0 1 0 10 10H11z"/><path d="M13 1v10h10A10 10 0 0 0 13 1z" opacity=".55"/></svg>',
+  bars:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="1"/><path d="M9 5v14M14 5v14"/></svg>'
+};
+
+/* navegação */
+function go(view){
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.view === view));
+  document.getElementById('v-visoes').classList.toggle('hidden', view !== 'visoes');
+  document.getElementById('v-importar').classList.toggle('hidden', view !== 'importar');
+  if (view === 'visoes' && DATA) render();
+}
+document.querySelectorAll('.nav button').forEach(b => b.onclick = () => go(b.dataset.view));
+
+/* importação */
+async function load(file){
+  const msg = document.getElementById('impMsg');
+  msg.className = 'msg hidden';
+  try{
+    let d = null;
+    if (/\.csv$/i.test(file.name)){
+      const txt = await file.text();
+      const first = txt.split('\n')[0];
+      const sep = (first.match(/;/g)||[]).length > (first.match(/,/g)||[]).length ? ';' : ',';
+      const wb = XLSX.read(txt, {type:'string', FS:sep, raw:true});
+      d = parseRows(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:true, defval:null}));
+      if (d) d.sheet = 'CSV';
+    } else {
+      const wb = XLSX.read(await file.arrayBuffer(), {type:'array', cellDates:true});
+      for (const name of wb.SheetNames){
+        const r = parseRows(XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, raw:true, defval:null}));
+        if (r){ r.sheet = name; d = r; break; }
+      }
+    }
+    if (!d) throw new Error('não encontrei as colunas esperadas (veja os formatos aceitos ao lado).');
+    DATA = d; DATA.file = file.name; DATA.loadedAt = new Date();
+    fillFilters();
+    msg.className = 'msg ok';
+    msg.textContent = `✓ ${file.name} carregado — base ${DATA.formato}, ${DATA.clients.length} clientes, ${DATA.months.length} meses.`;
+    document.getElementById('empty').classList.add('hidden');
+    document.getElementById('dash').classList.remove('hidden');
+    setTimeout(() => go('visoes'), 600);
+  }catch(e){
+    msg.className = 'msg err';
+    msg.textContent = 'Não consegui ler esse arquivo: ' + e.message;
+  }
+}
+document.getElementById('file').addEventListener('change', e => { if (e.target.files[0]) load(e.target.files[0]); e.target.value = ''; });
+const drop = document.getElementById('drop');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) load(f); });
+
+function fillFilters(){
+  const m = document.getElementById('fMes'), c = document.getElementById('fCli');
+  m.innerHTML = '<option value="all">Todos os meses</option>' + DATA.months.map((mi,i) => `<option value="${i}">${MES_NOME[mi]}</option>`).join('');
+  c.innerHTML = '<option value="all">Todos</option>' + DATA.clients.map(x => `<option>${x}</option>`).join('');
+  m.onchange = c.onchange = render;
+}
+
+/* desenho */
+function render(){
+  const fm = document.getElementById('fMes').value, fc = document.getElementById('fCli').value;
+  const allIdx = DATA.months.map((_,i) => i);
+  const idx = fm === 'all' ? allIdx : [+fm];
+  const cl = fc === 'all' ? DATA.clients : [fc];
+  const sum = (key, c, ii) => ii.reduce((s,i) => s + DATA[key][c][i], 0);
+  const sumV = cl.reduce((s,c) => s + sum('v',c,idx), 0);
+  const sumP = cl.reduce((s,c) => s + sum('p',c,idx), 0);
+  const per = fm === 'all' ? `${MES_NOME[DATA.months[0]].toLowerCase()} a ${MES_NOME[DATA.months.at(-1)].toLowerCase()}${DATA.year ? ' de ' + DATA.year : ''}` : `${MES_NOME[DATA.months[+fm]].toLowerCase()}${DATA.year ? ' de ' + DATA.year : ''}`;
+  document.getElementById('subtitle').textContent = `Viagens e peso bruto por montadora · ${per}${fc !== 'all' ? ' · ' + fc : ''}.`;
+
+  // principal cliente (no recorte de meses) e mês de maior volume (no recorte de clientes)
+  const totAllV = DATA.clients.reduce((s,c) => s + sum('v',c,idx), 0);
+  const top = DATA.clients.map(c => [c, sum('v',c,idx)]).sort((a,b) => b[1]-a[1])[0];
+  const byMonthV = allIdx.map(i => cl.reduce((s,c) => s + DATA.v[c][i], 0));
+  const byMonthP = allIdx.map(i => cl.reduce((s,c) => s + DATA.p[c][i], 0));
+  const mi = byMonthV.indexOf(Math.max(...byMonthV));
+
+  const kpi = (l, v, s, ic) => `<div class="card kpi"><div><div class="lbl">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div><div class="ic">${ICON[ic]}</div></div>`;
+  document.getElementById('kpis').innerHTML =
+    kpi('Total de viagens', fInt(sumV), 'Período selecionado', 'truck') +
+    kpi('Peso bruto total', fBig(sumP), sumV ? `${fInt(sumP/sumV)} kg por viagem` : 'Período selecionado', 'weight') +
+    kpi('Principal cliente', top && top[1] > 0 ? top[0] : '—', top && totAllV ? `${fPct(top[1]/totAllV)} das viagens` : '', 'pie') +
+    kpi('Maior volume', MES_NOME[DATA.months[mi]], `${fInt(byMonthV[mi])} viagens`, 'bars');
+
+  const w = [];
+  if (DATA.sheetTotals) DATA.clients.forEach(c => {
+    const t = DATA.sheetTotals[c]; const sv = sum('v',c,allIdx);
+    if (t && Math.abs(t.v - sv) > 0.5) w.push(`${c}: o "Total Geral" da planilha (${fInt(t.v)}) não bate com a soma dos meses (${fInt(sv)}).`);
+  });
+  document.getElementById('warnings').innerHTML = w.length ? `<div class="warn">⚠️ ${w.join('<br>')}</div>` : '';
+
+  drawEvo(allIdx.map(i => MESES[DATA.months[i]].toUpperCase()), byMonthV, byMonthP, fm === 'all' ? -1 : +fm);
+
+  // participação
+  const pTot = cl.reduce((s,c) => s + sum('v',c,idx), 0);
+  const parts = cl.map(c => [c, sum('v',c,idx)]).sort((a,b) => b[1]-a[1]);
+  document.getElementById('part').innerHTML = parts.map(([c,v]) => {
+    const p = pTot ? v/pTot : 0;
+    return `<div class="n">${c}</div><div class="t"><div style="width:${Math.max(p*100, v > 0 ? .6 : 0)}%"></div></div><div class="q">${fInt(v)}</div><div class="pc">${fPct(p)}</div>`;
+  }).join('');
+
+  // tabela
+  const head = `<thead><tr><th rowspan="2">Mês</th>${cl.map(c => `<th colspan="2">${c}</th>`).join('')}<th rowspan="2">Viagem</th><th rowspan="2">Peso_bruto_total</th></tr>
+    <tr>${cl.map(() => '<th>Viagem</th><th>Peso_bruto_cte</th>').join('')}</tr></thead>`;
+  let body = '<tbody>';
+  idx.forEach(i => {
+    const tv = cl.reduce((s,c) => s + DATA.v[c][i], 0), tp = cl.reduce((s,c) => s + DATA.p[c][i], 0);
+    body += `<tr><td>${MESES[DATA.months[i]]}</td>${cl.map(c => `<td>${fInt(DATA.v[c][i])}</td><td>${fInt(DATA.p[c][i])}</td>`).join('')}<td class="tot">${fInt(tv)}</td><td class="tot">${fInt(tp)}</td></tr>`;
+  });
+  if (idx.length > 1) body += `<tr class="total"><td>Total geral</td>${cl.map(c => `<td>${fInt(sum('v',c,idx))}</td><td>${fInt(sum('p',c,idx))}</td>`).join('')}<td>${fInt(sumV)}</td><td>${fInt(sumP)}</td></tr>`;
+  document.getElementById('tDetail').innerHTML = head + body + '</tbody>';
+
+  window._csv = () => {
+    const L = [['Mes', ...cl.flatMap(c => [c + ' viagem', c + ' peso_bruto_cte']), 'Viagem total', 'Peso_bruto_total'].join(';')];
+    const dec = x => x.toFixed(3).replace('.', ',');
+    idx.forEach(i => L.push([MESES[DATA.months[i]], ...cl.flatMap(c => [DATA.v[c][i], dec(DATA.p[c][i])]),
+      cl.reduce((s,c) => s + DATA.v[c][i], 0), dec(cl.reduce((s,c) => s + DATA.p[c][i], 0))].join(';')));
+    return L.join('\n');
+  };
+
+  document.getElementById('foot').textContent =
+    `Base: ${DATA.file} · ${MESES[DATA.months[0]]} a ${MESES[DATA.months.at(-1)]} · carregada em ${DATA.loadedAt.toLocaleString('pt-BR')} · Os dados são lidos só no seu navegador.`;
+}
+
+function drawEvo(labels, viagens, peso, sel){
+  const teal = css('--teal'), lime = css('--lime'), grid = css('--grid'), ink = css('--ink-2');
+  const maxV = Math.max(...viagens) * 1.15;
+  const maxP = Math.max(...peso) * 1.4;
+  const barColors = viagens.map((_,i) => sel < 0 || sel === i ? teal : teal + '40');
+  if (charts.evo) charts.evo.destroy();
+  charts.evo = new Chart(document.getElementById('cEvo'), {
+    data:{labels, datasets:[
+      {type:'line', label:'Peso bruto (kg)', data:peso, yAxisID:'yP', borderColor:lime, backgroundColor:'#fff',
+       borderWidth:2.5, pointRadius:4, pointHoverRadius:6, pointBorderWidth:2, pointBorderColor:lime, tension:0.15, order:0},
+      {type:'bar', label:'Viagens', data:viagens, yAxisID:'yV', backgroundColor:barColors,
+       borderRadius:{topLeft:3, topRight:3}, borderSkipped:'bottom', maxBarThickness:28, order:1}
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      layout:{padding:{top:18}},
+      interaction:{mode:'index', intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label: ctx => ctx.dataset.yAxisID === 'yV' ? ` Viagens: ${fInt(ctx.parsed.y)}` : ` Peso bruto: ${fInt(ctx.parsed.y)} kg (${f1(ctx.parsed.y/1000)} t)`}}
+      },
+      scales:{
+        x:{grid:{display:false}, border:{color:grid}, ticks:{color:ink, font:{size:10}}},
+        yV:{position:'left', beginAtZero:true, max:maxV, grid:{color:grid}, border:{display:false},
+            ticks:{color:ink, font:{size:10}, maxTicksLimit:5, callback:v => Math.round(v).toLocaleString('pt-BR')}},
+        yP:{position:'right', beginAtZero:true, max:maxP, display:false}
+      }
+    },
+    plugins:[{id:'barLabels', afterDatasetsDraw(ch){
+      const {ctx} = ch; const meta = ch.getDatasetMeta(1);
+      ctx.save(); ctx.font = '700 10px Inter, Arial'; ctx.fillStyle = css('--ink'); ctx.textAlign = 'center';
+      meta.data.forEach((b,i) => ctx.fillText(fInt(viagens[i]), b.x, b.y - 6));
+      ctx.restore();
+    }}]
+  });
+}
+
+/* exportar */
+document.getElementById('expCsv').onclick = () => {
+  try{
+    const blob = new Blob(['﻿' + window._csv()], {type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'detalhamento_emissao_inbound.csv'; document.body.appendChild(a); a.click(); a.remove();
+    toast('CSV gerado. Se o download não começar, use "Copiar tabela".');
+  }catch(e){ toast('Download bloqueado aqui. Use "Copiar tabela".'); }
+};
+document.getElementById('copyCsv').onclick = async () => {
+  try{ await navigator.clipboard.writeText(window._csv().replace(/;/g,'\t')); toast('Tabela copiada. Cole no Excel com Ctrl+V.'); }
+  catch(e){ toast('Não consegui copiar aqui.'); }
+};
+</script>
+</body>
+</html>
